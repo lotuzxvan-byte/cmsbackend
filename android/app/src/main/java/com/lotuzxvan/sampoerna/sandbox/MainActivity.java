@@ -1,89 +1,81 @@
 package com.lotuzxvan.sampoerna.sandbox;
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.Gravity;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-import androidx.browser.customtabs.CustomTabsClient;
-import androidx.browser.customtabs.CustomTabsIntent;
-import androidx.browser.customtabs.CustomTabColorSchemeParams;
-import java.util.Collections;
+import android.view.View;
+import android.webkit.*;
+import android.widget.*;
+import android.net.http.SslError;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 public final class MainActivity extends Activity {
-    private static final Uri SITE = Uri.parse("https://sampoerna-corporate-workspace.lotuzxvan.chatgpt.site/");
-    private TextView status;
-    @Override public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setGravity(Gravity.CENTER_VERTICAL);
-        int space = Math.round(24 * getResources().getDisplayMetrics().density);
-        layout.setPadding(space, space, space, space);
-        layout.setBackgroundColor(Color.WHITE);
-        layout.setFitsSystemWindows(true);
-        TextView title = new TextView(this);
-        title.setText("Sampoerna Corporate");
-        title.setTextSize(28);
-        title.setTextColor(Color.rgb(191,34,49));
-        layout.addView(title);
-        status = new TextView(this);
-        status.setText("Your banking workspace opens securely in your browser. Sign in with your registered account.");
-        status.setTextSize(16);
-        status.setPadding(0,space,0,space);
-        status.setTextColor(Color.rgb(53,64,82));
-        layout.addView(status);
-        Button open = new Button(this);
-        open.setText("Open banking workspace");
-        open.setAllCaps(false);
-        open.setMinHeight(Math.round(56 * getResources().getDisplayMetrics().density));
-        open.setOnClickListener(v -> openWorkspace(true));
-        layout.addView(open);
-        Button fallback = new Button(this);
-        fallback.setText("Open in browser");
-        fallback.setAllCaps(false);
-        fallback.setOnClickListener(v -> openWorkspace(false));
-        layout.addView(fallback);
-        TextView note = new TextView(this);
-        note.setText("Unofficial sandbox · No real money moves.\nAn internet connection and a web browser are required.");
-        note.setTextSize(14);
-        note.setPadding(0,space,0,0);
-        layout.addView(note);
-        setContentView(layout);
-        // Do not re-launch after rotation, browser return or process restoration.
-        if (savedInstanceState == null) openWorkspace(true);
+    private static final String SITE="https://sampoerna-corporate-workspace.lotuzxvan.chatgpt.site/";
+    private static final String HOST="sampoerna-corporate-workspace.lotuzxvan.chatgpt.site";
+    private WebView web;
+    private TextView error;
+    private Button retry;
+    private ValueCallback<Uri[]> fileCallback;
+    private byte[] pendingExport;
+    private boolean allowed(Uri uri) { return "https".equals(uri.getScheme()) && HOST.equals(uri.getHost()) && (uri.getPort()==-1 || uri.getPort()==443); }
+    @Override public void onCreate(Bundle state) {
+        super.onCreate(state);
+        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);root.setFitsSystemWindows(true);
+        error=new TextView(this);error.setTextSize(16);error.setPadding(24,24,24,12);error.setVisibility(View.GONE);root.addView(error);
+        retry=new Button(this);retry.setText("Retry");retry.setVisibility(View.GONE);root.addView(retry);
+        web=new WebView(this);root.addView(web,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
+        WebSettings settings=web.getSettings();
+        settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);
+        settings.setAllowFileAccess(false);settings.setAllowContentAccess(true); // Required for user-selected document uploads.
+        settings.setAllowFileAccessFromFileURLs(false);settings.setAllowUniversalAccessFromFileURLs(false);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        settings.setUserAgentString(settings.getUserAgentString()+" SampoernaAndroid/0.2.0");
+        CookieManager.getInstance().setAcceptCookie(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(web,false);
+        WebView.setWebContentsDebuggingEnabled(false);
+        retry.setOnClickListener(v->{error.setVisibility(View.GONE);retry.setVisibility(View.GONE);web.loadUrl(SITE);});
+        web.setWebViewClient(new WebViewClient(){
+            @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest req){return navigate(req.getUrl(),req.isForMainFrame());}
+            @Override public boolean shouldOverrideUrlLoading(WebView view,String url){return navigate(Uri.parse(url),true);}
+            @Override public void onReceivedSslError(WebView view,SslErrorHandler handler,SslError ssl){handler.cancel();showError("Secure connection failed. Check your device time and internet connection.");}
+            @Override public void onReceivedError(WebView view,WebResourceRequest req,WebResourceError detail){if(req.isForMainFrame())showError("Unable to load banking. Check your internet connection and tap Retry.");}
+            @Override public void onPageFinished(WebView view,String url){CookieManager.getInstance().flush();}
+        });
+        web.setWebChromeClient(new WebChromeClient(){
+            @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){
+                if(fileCallback!=null)fileCallback.onReceiveValue(null);
+                fileCallback=callback;
+                Intent picker=new Intent(Intent.ACTION_OPEN_DOCUMENT);picker.addCategory(Intent.CATEGORY_OPENABLE);picker.setType("*/*");
+                try{startActivityForResult(picker,100);}catch(RuntimeException ex){fileCallback.onReceiveValue(null);fileCallback=null;showError("No file picker is available on this device.");}return true;
+            }
+        });
+        // No ACTION_VIEW, Custom Tab, external browser or JavaScript-to-native bridge.
+        // Reload protected content after activity recreation; do not restore sensitive page snapshots.
+        web.loadUrl(SITE);
     }
-    private void openWorkspace(boolean preferCustomTab) {
-        try {
-            if (preferCustomTab) {
-                String provider = CustomTabsClient.getPackageName(this, Collections.emptyList());
-                if (provider != null) {
-                    CustomTabsIntent tab = new CustomTabsIntent.Builder()
-                        .setShowTitle(true)
-                        .setDefaultColorSchemeParams(new CustomTabColorSchemeParams.Builder()
-                            .setToolbarColor(Color.rgb(191,34,49)).build()).build();
-                    tab.intent.setPackage(provider);
-                    tab.launchUrl(this, SITE);
-                    status.setText("Workspace opened. Tap Open banking workspace to return to it.");
-                    return;
-                }
-            }
-            launchBrowser();
-        } catch (RuntimeException failure) {
-            // A provider may be disabled between discovery and launch.
-            try { launchBrowser(); }
-            catch (RuntimeException unavailable) {
-                status.setText("No available browser could open the workspace. Enable or install Chrome or another browser, then tap Open banking workspace.");
-            }
+    private boolean navigate(Uri uri,boolean mainFrame){
+        if(allowed(uri))return false;
+        if(mainFrame && "sampoerna-download".equals(uri.getScheme()) && "csv".equals(uri.getHost()) && web.getUrl()!=null && allowed(Uri.parse(web.getUrl()))){
+            String text=uri.getQueryParameter("text"),name=uri.getQueryParameter("name");
+            if(text==null || text.length()>5_000_000 || pendingExport!=null){Toast.makeText(this,"Export is too large or another save is pending.",Toast.LENGTH_LONG).show();return true;}
+            pendingExport=text.getBytes(StandardCharsets.UTF_8);
+            Intent save=new Intent(Intent.ACTION_CREATE_DOCUMENT);save.addCategory(Intent.CATEGORY_OPENABLE);save.setType("text/csv");save.putExtra(Intent.EXTRA_TITLE,name==null?"report.csv":name.replaceAll("[^A-Za-z0-9._-]","_"));
+            try{startActivityForResult(save,101);}catch(RuntimeException ex){pendingExport=null;showError("No file saver is available on this device.");}return true;
+        }
+        if(mainFrame)Toast.makeText(this,"This external link is not available inside the banking app.",Toast.LENGTH_LONG).show();
+        return true;
+    }
+    private void showError(String text){error.setText(text);error.setVisibility(View.VISIBLE);retry.setVisibility(View.VISIBLE);}
+    @Override protected void onActivityResult(int request,int result,Intent data){
+        super.onActivityResult(request,result,data);
+        if(request==100 && fileCallback!=null){fileCallback.onReceiveValue(result==RESULT_OK && data!=null && data.getData()!=null?new Uri[]{data.getData()}:null);fileCallback=null;}
+        if(request==101){
+            if(result==RESULT_OK && data!=null && data.getData()!=null && pendingExport!=null){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new java.io.IOException();out.write(pendingExport);Toast.makeText(this,"Report saved",Toast.LENGTH_SHORT).show();}catch(Exception ex){showError("Could not save the report. Please try again.");}}
+            pendingExport=null;
         }
     }
-    private void launchBrowser() {
-        Intent intent = new Intent(Intent.ACTION_VIEW, SITE);
-        intent.addCategory(Intent.CATEGORY_BROWSABLE);
-        startActivity(intent);
-        status.setText("Workspace opened in your browser. Return here to reopen it.");
-    }
+    @Override public void onBackPressed(){if(web.canGoBack())web.goBack();else super.onBackPressed();}
+    @Override protected void onDestroy(){if(fileCallback!=null)fileCallback.onReceiveValue(null);pendingExport=null;web.destroy();super.onDestroy();}
 }

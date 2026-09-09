@@ -165,6 +165,15 @@ export function downloadCSV(name: string, rows: unknown[][]) {
       .replace(/^[=+@\-\t\r]/, "'$&")
       .replaceAll('"', '""') +
     '"';
+  if (navigator.userAgent.includes('SampoernaAndroid/')) {
+    const csv = '\uFEFF' + rows.map((r) => r.map(cell).join(',')).join('\r\n');
+    location.href =
+      'sampoerna-download://csv?name=' +
+      encodeURIComponent(name) +
+      '&text=' +
+      encodeURIComponent(csv);
+    return;
+  }
   const blob = new Blob(
     ['\uFEFF' + rows.map((r) => r.map(cell).join(',')).join('\r\n')],
     { type: 'text/csv;charset=utf-8' },

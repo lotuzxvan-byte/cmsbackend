@@ -1,9 +1,9 @@
-# Android startup fix — 0.1.1
+# Android 0.2.0 — embedded banking
 
-The launcher retains a visible recovery screen and uses Custom Tabs with a normal-browser fallback. Missing or disabled browsers produce an actionable message instead of an unhandled launch failure. Explicit package visibility declarations allow browser discovery. Back navigation returns to the launcher; rotation and activity restoration do not automatically relaunch the browser. This replaces the earlier self-finishing Trusted Web Activity launcher. The browser toolbar remains visible.
+The installed app renders the banking workspace in an Android WebView. It does not launch a browser or use Custom Tabs. Email/password login, first-login password change, accounts, payments, approvals and user administration remain inside the app. This is an embedded web interface, not a fully native rewrite. It requires an internet connection to the existing Sites/D1 backend.
 
-The GitHub workflow builds, lints and runs cold/repeated-launch crash checks on an Android 35 emulator. Smoke checks do not verify an authenticated banking journey on a physical device. The reported device failure has no device crash log, so the exact original exception is unconfirmed.
+The app restricts navigation to the exact HTTPS banking origin, rejects invalid TLS, disables local file access, mixed content and WebView debugging, and has no JavaScript bridge. Explicit document pickers support CSV uploads and exports. External website links are blocked; banking workflows remain in the app. Passwords are not stored in the APK. Secure, HttpOnly session cookies stay in the app WebView cookie store.
 
-Version 0.1.1 uses the same application ID and hosted database as 0.1.0. GitHub runner debug keys can differ between builds. If Android rejects the update with a signature conflict, uninstall the previous test APK before installing this one. Banking records remain on the server; this wrapper stores no banking data.
+Download the 0.2.0 artifact from the successful GitHub Actions run. If a previous debug APK cannot be updated because runner signing certificates differ, uninstall it first. Server banking records are retained. This is a test APK, not a Play Store release.
 
-Open this directory in Android Studio with JDK 17, Gradle 8.13 and Android SDK 36. Run `gradle :app:assembleDebug :app:lintDebug`. Use the successful workflow artifact for installation. Authentication still uses ChatGPT and active corporate membership. Google OAuth is not configured.
+Build with JDK 17, Gradle 8.13 and Android SDK 36: `gradle :app:assembleDebug :app:lintDebug`. The CI emulator check installs and launches twice, checks crash logs, verifies the foreground activity belongs to this app and checks the embedded email/password controls. It does not enter production credentials.

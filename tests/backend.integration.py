@@ -7,6 +7,7 @@ BASE='http://localhost:3000'
 jar=http.cookiejar.CookieJar();client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 count=0
 def request(path,body=None,auth=True,extra=None):
+ if body and body.get('action')=='create':body={**body,'password':'Local-Test-Temporary-Password-Only'}
  headers={'Content-Type':'application/json','Origin':BASE,**(extra or {})}
  req=urllib.request.Request(BASE+path,data=json.dumps(body).encode() if body is not None else None,headers=headers)
  try:
@@ -19,7 +20,11 @@ def check(ok,label):
 check(request('/api/banking',auth=False)[0]==401,'anonymous banking data denied')
 check(request('/api/users',auth=False)[0]==401,'anonymous user list denied')
 check(request('/api/banking',auth=False,extra={'oai-authenticated-user-id':'local_seedy','oai-authenticated-user-email':'seedy@sites.test','X-Demo-Role':'Administrator'})[0]==401,'spoofed identity headers stripped by local Sites gateway')
-client.open(BASE+'/signin-with-chatgpt?return_to=%2F').close()
+import runpy
+password_checks=runpy.run_path('tests/password.integration.py')
+password_client=password_checks['a']
+assert password_client.req('/api/auth/login',{'email':password_checks['setup']['email'],'password':password_checks['new']})[0]==200
+client.addheaders=[('Cookie',password_client.cookie)]
 code,data=request('/api/banking');check(code==200 and data['currentUser']['role']=='Administrator','signed-in administrator admitted')
 admin=data['currentUser'];tenant='sampoerna-corporate-v2'
 fixture=None
@@ -39,7 +44,7 @@ try:
  code,result=request('/api/users',{'action':'create','email':email,'name':'Integration User','role':'Maker'})
  check(code==201,'user created and stored');user_id=result['id']
  users=request('/api/users')[1]['users'];u=next(x for x in users if x['id']==user_id)
- check(not u['activated'] and u['status']=='Active','new user awaits signed-in identity binding')
+ check(not u['activated'] and u['status']=='Active','new user awaits first password sign-in')
  check(request('/api/users',{'action':'create','email':email.upper(),'name':'Duplicate','role':'Maker'})[0]==409,'case-normalized duplicate email rejected')
  check(request('/api/users',{'action':'update','id':admin['id'],'revision':admin['revision'],'name':admin['name'],'role':'Maker','status':'Active'})[0]==400,'self-demotion blocked')
  check(request('/api/users',{'action':'update','id':admin['id'],'revision':admin['revision'],'name':admin['name'],'role':'Administrator','status':'Suspended'})[0]==400,'self-suspension blocked')
@@ -60,13 +65,14 @@ try:
  check(request('/api/banking',{'action':'approve','id':pid},extra={'X-Demo-Role':'Approver'})[0]==403,'maker cannot spoof approver role')
  fixture_role('Approver')
  check(request('/api/banking',{'action':'approve','id':pid})[0]==400,'self-approval blocked after role changes')
- d=request('/api/banking')[1];pending=next(p for p in d['payments'] if p['status']=='Pending' and p['maker']=='Rina');a=next(a for a in d['accounts'] if a['id']==pending['account_id'])
- check(request('/api/banking',{'action':'approve','id':pending['id']})[0]==200,'different approver completes seeded instruction')
+ fixture.execute('UPDATE payments SET maker=? WHERE id=?',('independent-local-fixture',pid));fixture.commit()
+ d=request('/api/banking')[1];pending=next(p for p in d['payments'] if p['id']==pid);a=next(a for a in d['accounts'] if a['id']==pending['account_id'])
+ check(request('/api/banking',{'action':'approve','id':pending['id']})[0]==200,'different approver completes fixture instruction')
  check(request('/api/banking',{'action':'approve','id':pending['id']})[0]==409,'repeat approval rejected')
  d=request('/api/banking')[1];check(next(x['balance'] for x in d['accounts'] if x['id']==a['id'])==a['balance']-pending['amount'],'approval debits once')
  fixture_role('Approver','Suspended')
- check(request('/api/banking')[0]==403,'suspension blocks existing signed-in session')
- check(request('/api/banking',{'action':'payment','payment':payment})[0]==403,'suspended session cannot write')
+ check(request('/api/banking')[0]==401,'suspension blocks existing signed-in session')
+ check(request('/api/banking',{'action':'payment','payment':payment})[0]==401,'suspended session cannot write')
  fixture_role('Administrator')
  d=request('/api/banking')[1];check(any(x['action']=='User access updated' and email in x['detail'] for x in d['audit']),'administration changes audited')
  check(request('/api/users',{'action':'create','email':'invalid','name':'Test','role':'Maker'})[0]==400,'invalid email rejected')

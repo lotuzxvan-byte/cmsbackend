@@ -87,3 +87,32 @@ export const members = sqliteTable(
     uniqueIndex('members_identity').on(t.user_id),
   ],
 );
+
+export const authCredentials = sqliteTable('auth_credentials', {
+  member_id: text('member_id').primaryKey(),
+  password_hash: text('password_hash').notNull(),
+  must_change: integer('must_change').notNull(),
+  revision: integer('revision').notNull(),
+});
+export const authSessions = sqliteTable(
+  'auth_sessions',
+  {
+    token_hash: text('token_hash').primaryKey(),
+    member_id: text('member_id').notNull(),
+    revision: integer('revision').notNull(),
+    expires: integer('expires').notNull(),
+  },
+  (t) => [
+    index('sessions_member').on(t.member_id),
+    index('sessions_expiry').on(t.expires),
+  ],
+);
+export const authLimits = sqliteTable(
+  'auth_limits',
+  {
+    key: text('key').primaryKey(),
+    count: integer('count').notNull(),
+    expires: integer('expires').notNull(),
+  },
+  (t) => [index('limits_expiry').on(t.expires)],
+);

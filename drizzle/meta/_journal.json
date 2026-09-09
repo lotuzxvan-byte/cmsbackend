@@ -15,6 +15,13 @@
       "when": 1788964085686,
       "tag": "0001_milky_marvel_zombies",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788969103978,
+      "tag": "0002_first_triton",
+      "breakpoints": true
     }
   ]
 }
