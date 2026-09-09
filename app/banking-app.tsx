@@ -305,23 +305,7 @@ export default function BankingApp({
           <div className="top-actions">
             <span className="demo-pill">SANDBOX</span>
             <span className="identity-role">{role}</span>
-            <a className="logout-link" href="/password">
-              Password
-            </a>
-            <button
-              className="logout-link"
-              onClick={async () => {
-                const r = await fetch('/api/auth/logout', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: '{}',
-                });
-                if (r.ok) location.replace('/');
-                else setError('Unable to sign out. Please retry.');
-              }}
-            >
-              Sign out
-            </button>
+            <a className="logout-link" href="/signout-with-chatgpt?return_to=%2F" target="_top">Sign out</a>
             <button
               className="icon-button"
               aria-label="Refresh workspace"
