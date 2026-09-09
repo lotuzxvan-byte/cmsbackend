@@ -75,3 +75,7 @@ Deploy through Sites behind its authenticated dispatcher. The dispatcher authent
 ## Limits
 
 All balances and transactions remain fictional. Liquidity configurations do not run a scheduler, service requests are saved drafts and future-dated instructions are reviewed on their execution date. Bank-core integration, bank-grade MFA/transaction signing, immutable independent audit retention, ledger reconciliation and formal security/compliance acceptance remain production work. See IMPLEMENTATION.md for the source-product mapping.
+
+## Android branch
+
+`feature/android-mobile` adds an Android Trusted Web Activity project in `android/`, phone bottom navigation, touch-sized controls and adaptive dialogs. See [Android setup](android/README.md) for APK building, signing and fullscreen verification. GitHub main is unchanged.

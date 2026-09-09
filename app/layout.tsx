@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -12,8 +12,18 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#bf2231',
+};
+
 export const metadata: Metadata = {
-  icons: { icon: '/sampoerna-logo.png' }, title: 'Sampoerna Corporate | Banking Sandbox', description: 'Corporate cash management sandbox for payments, approvals, accounts and liquidity.',
+  icons: { icon: '/sampoerna-logo.png' },
+  title: 'Sampoerna Corporate | Banking Sandbox',
+  description:
+    'Corporate cash management sandbox for payments, approvals, accounts and liquidity.',
 };
 
 export default function RootLayout({
@@ -31,5 +41,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-

@@ -19,6 +19,7 @@ import {
   Download,
   Building2,
   RefreshCw,
+  Menu,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -74,6 +75,7 @@ const titles: Record<string, string> = {
   detail: 'Payment details',
   help: 'Your corporate banking workspace',
   notifications: 'Notifications',
+  menus: 'All services',
 };
 export default function BankingApp({
   member,
@@ -120,7 +122,12 @@ export default function BankingApp({
   useEffect(() => {
     void refresh().catch(() => {});
     const sync = () => {
-      const s = decodeURIComponent(location.hash.slice(1));
+      let s = 'Overview';
+      try {
+        s = decodeURIComponent(location.hash.slice(1)) || 'Overview';
+      } catch {
+        return;
+      }
       if (navigation.some(([n]) => n === s)) setView(s);
     };
     sync();
@@ -454,6 +461,35 @@ export default function BankingApp({
           </footer>
         </div>
       </main>
+      <nav className="mobile-navigation" aria-label="Main navigation">
+        {navigation.slice(0, 3).map(([name, Icon]) => (
+          <button
+            key={name}
+            aria-current={view === name ? 'page' : undefined}
+            onClick={() => go(name)}
+          >
+            <Icon size={23} />
+            <span>{name === 'Overview' ? 'Home' : name}</span>
+          </button>
+        ))}
+        <button
+          aria-current={view === 'Approvals' ? 'page' : undefined}
+          onClick={() => go('Approvals')}
+        >
+          <CheckCheck size={23} />
+          <span>
+            Approvals{pending.length > 0 ? ` (${pending.length})` : ''}
+          </span>
+        </button>
+        <button
+          aria-label="All services"
+          aria-haspopup="dialog"
+          onClick={() => open('menus')}
+        >
+          <Menu size={23} />
+          <span>More</span>
+        </button>
+      </nav>
       <Dialog
         open={!!modal}
         onOpenChange={(v) => {
@@ -658,6 +694,26 @@ export default function BankingApp({
               >
                 View activity reports
               </Button>
+            </div>
+          )}
+          {modal === 'menus' && (
+            <div className="mobile-service-grid">
+              {navigation.map(([name, Icon]) => (
+                <button
+                  key={name}
+                  onClick={() => {
+                    setModal('');
+                    go(name);
+                  }}
+                >
+                  <Icon size={24} />
+                  <span>{name}</span>
+                </button>
+              ))}
+              <button onClick={() => open('help')}>
+                <CircleHelp size={24} />
+                <span>Help</span>
+              </button>
             </div>
           )}
           {modal === 'help' && (
