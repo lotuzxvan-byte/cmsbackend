@@ -1,7 +1,7 @@
 plugins { id 'com.android.application' }
 android {
     namespace 'com.lotuzxvan.sampoerna.sandbox'
-    compileSdk 35
+    compileSdk 36
     defaultConfig {
         applicationId 'com.lotuzxvan.sampoerna.sandbox'
         minSdk 23
@@ -11,4 +11,4 @@ android {
     }
     buildTypes { release { minifyEnabled false } }
 }
-dependencies { implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2' }
+dependencies { implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.3' }

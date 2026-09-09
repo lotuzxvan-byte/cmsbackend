@@ -4,7 +4,7 @@ Android Trusted Web Activity package for the existing authenticated Sites applic
 
 ## Build and install
 
-Open this `android` directory in Android Studio with JDK 17, Android SDK 35 and Gradle 8.11.1. With Gradle installed, run `gradle :app:assembleDebug :app:lintDebug`. Install `app/build/outputs/apk/debug/app-debug.apk` on a test Android phone (Android 6 or later). The repository Android workflow performs these commands and uploads a debug APK when Actions is enabled. No Android SDK or JDK is available in the authoring workspace, so a local APK build and device test have not been performed.
+Open this `android` directory in Android Studio with JDK 17, Android SDK 36 and Gradle 8.13. With Gradle installed, run `gradle :app:assembleDebug :app:lintDebug`. Install `app/build/outputs/apk/debug/app-debug.apk` on a test Android phone (Android 6 or later). The repository Android workflow performs these commands and uploads a debug APK when Actions is enabled. No Android SDK or JDK is available in the authoring workspace, so a local APK build and device test have not been performed.
 
 ## Authentication and database
 
