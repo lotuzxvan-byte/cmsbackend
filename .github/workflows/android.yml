@@ -20,8 +20,18 @@ jobs:
           gradle-version: '8.13'
       - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - run: gradle -p android :app:assembleDebug :app:lintDebug
+      - name: Enable emulator acceleration on CI runner
+        run: sudo chmod a+rw /dev/kvm
+      - name: Android launch regression check
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: default
+          disable-animations: true
+          script: bash android/test-launch.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: sampoerna-android-debug
+          name: sampoerna-android-0.1.1-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
